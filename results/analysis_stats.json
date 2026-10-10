@@ -1,0 +1,10 @@
+{
+  "model": "ViT-L-16-SigLIP-256__webli",
+  "n_queries": 25014,
+  "top1_hit_rate": 0.5146318061885344,
+  "n_top1_misses": 12141,
+  "miss_top1_shares_a_category": 0.9528045465777119,
+  "miss_top1_mean_jaccard": 0.5537354482944172,
+  "random_pair_shares_a_category": 0.34287828930918257,
+  "random_pair_mean_jaccard": 0.07661891285974834
+}

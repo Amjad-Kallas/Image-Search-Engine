@@ -1,0 +1,27 @@
+{
+  "ViT-B-32__laion2b_s34b_b79k": {
+    "params_m": 151,
+    "text_query_ms": 18.7,
+    "image_query_ms": 25.0
+  },
+  "ViT-L-14__laion2b_s32b_b82k": {
+    "params_m": 428,
+    "text_query_ms": 19.4,
+    "image_query_ms": 90.5
+  },
+  "ViT-B-16-SigLIP__webli": {
+    "params_m": 203,
+    "text_query_ms": 18.0,
+    "image_query_ms": 32.2
+  },
+  "ViT-SO400M-14-SigLIP__webli": {
+    "params_m": 877,
+    "text_query_ms": 45.1,
+    "image_query_ms": 117.5
+  },
+  "ViT-L-16-SigLIP-256__webli": {
+    "params_m": 652,
+    "text_query_ms": 40.2,
+    "image_query_ms": 91.2
+  }
+}
