@@ -8,6 +8,10 @@ The project includes a proper retrieval evaluation and a comparison of five embe
 - **Image → image:** upload a photo, get visually similar ones.
 - **Stack:** `open_clip` (PyTorch), FAISS (exact cosine search), FastAPI, Streamlit.
 
+**Full write-up:** [docs/report.html](docs/report.html) is a self-contained report (open it in a browser) with the architecture, a plain-language explanation of the metrics, the results below, example searches and error analysis.
+
+![Text search in the Streamlit UI](docs/images/ui-text-search.png)
+
 ## Results
 
 All numbers are produced by `src/eval.py` and stored in [results/](results/).
@@ -109,7 +113,9 @@ src/eval.py      recall@k, precision@k, MRR, mAP, per-breed confusion analysis
 api/main.py      FastAPI service
 app.py           Streamlit UI (talks to the API)
 build_index.py   CLI to embed a dataset and save its index
-results/         evaluation output per model (JSON)
+results/         evaluation output per model (JSON), latency.json, analysis_stats.json
+scripts/         benchmark_latency.py, make_figures.py, take_screenshots.py, build_report.py (+ report template/CSS)
+docs/            report.html (generated) and images/
 ```
 
 ## How it works
@@ -117,3 +123,14 @@ results/         evaluation output per model (JSON)
 1. A pretrained CLIP/SigLIP model encodes every image into a vector; vectors are L2-normalised and stored in a FAISS inner-product index, so the score is cosine similarity.
 2. A text query goes through the model's text encoder, an image query through its image encoder; both are looked up in the same index and the top-k are returned ranked by similarity.
 3. Evaluation replays labelled queries (COCO captions, Pets breeds) through the same search and measures how often the right images come back.
+
+## Regenerating the report
+
+The report is generated from the saved result files, so its numbers always match `results/`. The extra plotting and browser tools are pulled in on demand and are not project dependencies.
+
+```bash
+uv run python -m scripts.benchmark_latency                         # params + query latency -> results/latency.json
+uv run --with matplotlib python -m scripts.make_figures            # charts, example grids, error analysis
+uv run --with playwright python scripts/take_screenshots.py        # UI screenshots (needs API on :8000 and Streamlit on :8501; uses system Edge)
+uv run python -m scripts.build_report                              # -> docs/report.html
+```
