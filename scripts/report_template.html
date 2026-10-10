@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Image Search Engine</title>
+<style>
+{{CSS}}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+</head>
+<body>
+
+<header class="top">
+  <nav class="nav-inner">
+    <span class="brand">Image Search Engine</span>
+    <a href="#objective">Objective</a>
+    <a href="#how">How it works</a>
+    <a href="#app">The app</a>
+    <a href="#evaluation">Evaluation</a>
+    <a href="#results">Results</a>
+    <a href="#examples">Examples</a>
+    <a href="#cv">CV bullets</a>
+    <a href="#limitations">Limitations</a>
+  </nav>
+</header>
+
+<div class="wrap">
+  <section class="hero">
+    <span class="eyebrow">Project report</span>
+    <h1>Image Search Engine: search photos by text or by example</h1>
+    <p class="tagline">Type a description or upload a picture and get back the most similar images from a collection. Built on CLIP-style embeddings and an exact nearest-neighbour index, and, more importantly, measured: five embedding models compared on two labelled benchmarks.</p>
+    <div class="meta-row">
+      <span><strong>Role</strong> — solo design &amp; build</span>
+      <span><strong>Stack</strong> — Python, open_clip, FAISS, FastAPI, Streamlit</span>
+      <span><strong>Data</strong> — COCO val2017 (5,000 images), Oxford-IIIT Pets (7,389 images)</span>
+    </div>
+  </section>
+
+  <section id="objective">
+    <h2>Objective</h2>
+    <p>Build a search engine over an image collection that works two ways: <strong>text → image</strong> ("a red double decker bus") and <strong>image → image</strong> (upload a photo, find look-alikes). Both use one index and one similarity measure.</p>
+    <p>Anyone can wire a model to a search box and show a demo. The goal here was to also answer the question a demo can't: <em>how good is the search, actually?</em> That means a labelled test set, standard retrieval metrics, and a fair comparison between models, so that every claim in this report comes with a number.</p>
+  </section>
+
+  <section id="how">
+    <h2>How it works, in plain terms</h2>
+    <p>The whole system rests on one idea: a <strong>CLIP-style model</strong> can turn both pictures and sentences into lists of numbers (<em>vectors</em>) such that a picture and a sentence that mean the same thing end up with nearly the same numbers. Once everything lives in that shared space, "search" becomes "find the closest vectors".</p>
+    <ol class="steps">
+      <li><strong>Embed every image once.</strong> The image encoder turns each photo into one vector. This is the slow step (minutes), and it happens offline.</li>
+      <li><strong>Store the vectors in an index.</strong> FAISS keeps them in memory and can find the nearest ones to any query vector almost instantly.</li>
+      <li><strong>Embed the query the same way.</strong> A text query goes through the text encoder; an uploaded image goes through the image encoder. Both produce a vector in the same space.</li>
+      <li><strong>Return the closest images.</strong> "Closest" means highest cosine similarity: the angle between two vectors is small when the content matches. The top <em>k</em> are shown ranked by score.</li>
+    </ol>
+  </section>
+</div>
+
+<div class="wide">
+  <div class="diagram-wrap diagram">
+<svg viewBox="0 0 1040 440" role="img" aria-label="Architecture: images are embedded offline into a FAISS index; text or image queries are embedded by the same model and searched against that index to return top-k results">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z"/></marker>
+  </defs>
+
+  <text class="lbl" x="20" y="28">Build once (offline)</text>
+  <rect class="box" x="20" y="45" width="180" height="64" rx="10"/>
+  <text class="t" x="110" y="74" text-anchor="middle">Image collection</text>
+  <text class="s" x="110" y="92" text-anchor="middle">5,000 – 7,000 photos</text>
+
+  <rect class="enc" x="250" y="45" width="150" height="64" rx="10"/>
+  <text class="t" x="325" y="74" text-anchor="middle">Image encoder</text>
+  <text class="s" x="325" y="92" text-anchor="middle">CLIP / SigLIP</text>
+
+  <rect class="store" x="450" y="45" width="140" height="64" rx="10"/>
+  <text class="t" x="520" y="74" text-anchor="middle">Image vectors</text>
+  <text class="s" x="520" y="92" text-anchor="middle">1 per image, unit length</text>
+
+  <rect class="store" x="640" y="45" width="150" height="64" rx="10"/>
+  <text class="t" x="715" y="74" text-anchor="middle">FAISS index</text>
+  <text class="s" x="715" y="92" text-anchor="middle">exact cosine search</text>
+
+  <path class="arrow" d="M200 77 H248" marker-end="url(#ah)"/>
+  <path class="arrow" d="M400 77 H448" marker-end="url(#ah)"/>
+  <path class="arrow" d="M590 77 H638" marker-end="url(#ah)"/>
+
+  <text class="lbl" x="20" y="190">Every query (online)</text>
+
+  <rect class="box" x="20" y="212" width="180" height="64" rx="10"/>
+  <text class="t" x="110" y="240" text-anchor="middle">Text query</text>
+  <text class="s" x="110" y="258" text-anchor="middle">“a red double decker bus”</text>
+
+  <rect class="box" x="20" y="316" width="180" height="64" rx="10"/>
+  <text class="t" x="110" y="344" text-anchor="middle">Image query</text>
+  <text class="s" x="110" y="362" text-anchor="middle">an uploaded photo</text>
+
+  <rect class="group" x="236" y="198" width="178" height="196" rx="14"/>
+  <rect class="enc" x="250" y="212" width="150" height="64" rx="10"/>
+  <text class="t" x="325" y="240" text-anchor="middle">Text encoder</text>
+  <text class="s" x="325" y="258" text-anchor="middle">same model</text>
+  <rect class="enc" x="250" y="316" width="150" height="64" rx="10"/>
+  <text class="t" x="325" y="344" text-anchor="middle">Image encoder</text>
+  <text class="s" x="325" y="362" text-anchor="middle">same model as offline</text>
+
+  <rect class="store" x="450" y="264" width="140" height="64" rx="10"/>
+  <text class="t" x="520" y="292" text-anchor="middle">Query vector</text>
+  <text class="s" x="520" y="310" text-anchor="middle">same space as images</text>
+
+  <rect class="box" x="640" y="264" width="150" height="64" rx="10"/>
+  <text class="t" x="715" y="292" text-anchor="middle">Nearest neighbours</text>
+  <text class="s" x="715" y="310" text-anchor="middle">highest cosine score</text>
+
+  <rect class="enc" x="840" y="264" width="180" height="64" rx="10"/>
+  <text class="t" x="930" y="292" text-anchor="middle">Top-k results</text>
+  <text class="s" x="930" y="310" text-anchor="middle">ranked by similarity</text>
+
+  <path class="arrow" d="M200 244 H248" marker-end="url(#ah)"/>
+  <path class="arrow" d="M200 348 H248" marker-end="url(#ah)"/>
+  <path class="arrow" d="M400 244 L448 286" marker-end="url(#ah)"/>
+  <path class="arrow" d="M400 348 L448 306" marker-end="url(#ah)"/>
+  <path class="arrow" d="M590 296 H638" marker-end="url(#ah)"/>
+  <path class="arrow" d="M790 296 H838" marker-end="url(#ah)"/>
+  <path class="arrow dash" d="M715 111 V262" marker-end="url(#ah)"/>
+  <text class="s" x="725" y="190">uses the stored index</text>
+
+  <text class="s" x="325" y="418" text-anchor="middle">Text and image encoders are trained together,</text>
+  <text class="s" x="325" y="434" text-anchor="middle">so their vectors can be compared directly.</text>
+</svg>
+  </div>
+</div>
+
+<div class="wrap">
+  <section>
+    <div class="principle-grid">
+      <div class="card">
+        <h3>One space, two query types</h3>
+        <p>There is no separate "caption matching" step. A sentence and a photo are both just vectors, so the same index answers both kinds of query.</p>
+      </div>
+      <div class="card">
+        <h3>Exact search, on purpose</h3>
+        <p>With a few thousand images, brute-force comparison takes milliseconds and returns the true nearest neighbours. Approximate indices only pay off at millions of images, and they would add error to the evaluation.</p>
+      </div>
+      <div class="card">
+        <h3>Vectors are normalised</h3>
+        <p>Every vector is scaled to length 1, so the inner product FAISS computes is exactly cosine similarity. Scores are comparable across queries.</p>
+      </div>
+      <div class="card">
+        <h3>Models are swappable</h3>
+        <p>The model is just a name and a weights tag (for example <code>ViT-L-16-SigLIP-256</code> + <code>webli</code>). Each model gets its own index, which is what made a five-model comparison cheap to run.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="stack">
+    <h2>Tools &amp; technologies</h2>
+    <div class="stack-grid">
+      <div class="chip-group"><h3>Language &amp; tooling</h3><div class="chip-row"><span class="chip">Python 3.12</span><span class="chip">uv</span><span class="chip">git</span></div></div>
+      <div class="chip-group"><h3>Models</h3><div class="chip-row"><span class="chip">open_clip</span><span class="chip">PyTorch (CUDA 12.6)</span><span class="chip">CLIP LAION-2B</span><span class="chip">SigLIP WebLI</span></div></div>
+      <div class="chip-group"><h3>Retrieval</h3><div class="chip-row"><span class="chip">FAISS IndexFlatIP</span><span class="chip">NumPy</span></div></div>
+      <div class="chip-group"><h3>Service &amp; UI</h3><div class="chip-row"><span class="chip">FastAPI</span><span class="chip">Uvicorn</span><span class="chip">Streamlit</span></div></div>
+      <div class="chip-group"><h3>Data</h3><div class="chip-row"><span class="chip">COCO val2017</span><span class="chip">Oxford-IIIT Pets</span></div></div>
+    </div>
+  </section>
+
+  <section id="app">
+    <h2>The app</h2>
+    <p>A FastAPI service loads the model and index once and exposes <code>/search/text</code> and <code>/search/image</code>; a Streamlit page sits on top of it with a text tab, an image-upload tab, a dataset selector and a results slider. Each result shows its similarity score.</p>
+  </section>
+</div>
+
+<div class="wide">
+  <div class="shot-grid two">
+    <figure>
+      <img src="images/ui-text-search.png" alt="Streamlit UI: text search for 'a red double decker bus' on COCO, showing ten red bus images with scores">
+      <figcaption>Text → image: "a red double decker bus" on COCO (best model). Scores are cosine similarities.</figcaption>
+    </figure>
+    <figure>
+      <img src="images/ui-image-search.png" alt="Streamlit UI: image search with an uploaded Birman cat on the Pets dataset, showing ten similar cats">
+      <figcaption>Image → image: an uploaded Birman cat against the Pets collection. The query is itself in the index, so it returns as result #1 with a score of 1.000.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<div class="wrap">
+  <section id="evaluation">
+    <h2>How the search is evaluated</h2>
+    <p>"It returned plausible pictures" is not a result. Two labelled benchmarks turn search quality into numbers, one per query type.</p>
+    <div class="principle-grid">
+      <div class="card">
+        <h3>Text → image: COCO val2017</h3>
+        <p>5,000 images, each with about five human-written captions: {{n_queries}} caption queries in total. For each caption, the <strong>one correct answer is the image it was written for</strong>. No manual labelling was needed.</p>
+      </div>
+      <div class="card">
+        <h3>Image → image: Oxford Pets</h3>
+        <p>7,389 photos of 37 cat and dog breeds (about 200 per breed). Every photo is used as a query against all the others, and a result counts as correct if it is <strong>the same breed</strong>. The query itself is excluded.</p>
+      </div>
+    </div>
+    <h3 style="margin-top:1.6rem">The metrics, without the jargon</h3>
+    <div class="principle-grid">
+      <div class="card"><h3>Recall@k</h3><p>How often the correct image shows up somewhere in the top <em>k</em> results. Recall@1 = "was it the very first result?"; recall@10 = "was it on the first page?".</p></div>
+      <div class="card"><h3>MRR</h3><p>Mean reciprocal rank. If the correct image is at rank 1 you score 1, at rank 2 you score ½, at rank 4 you score ¼; then average. Higher means the right answer sits nearer the top.</p></div>
+      <div class="card"><h3>Precision@k</h3><p>Of the top <em>k</em> results, what fraction were correct (same breed). 0.92 at k=10 means about 9 of 10 results were the right breed.</p></div>
+      <div class="card"><h3>mAP</h3><p>Mean average precision. Rewards putting <em>all</em> the same-breed images near the top of the full ranking, not just the first few. The strictest single number for Pets.</p></div>
+    </div>
+    <p class="note" style="margin-top:1rem">Two metrics are deliberately left out of the headline tables: precision@10 on COCO is capped at 0.1 (only one image is "correct"), and recall@k on Pets is capped near 5% at k=10 (about 200 correct images per query). Both are uninformative in those settings.</p>
+  </section>
+
+  <section id="results">
+    <h2>Results: five embedding models</h2>
+    <p>The same pipeline was run with five pretrained models, from a small baseline to the largest available: two CLIP models trained on LAION-2B and three SigLIP models trained on Google's WebLI data. Nothing else changes between runs, so the differences are the model's.</p>
+  </section>
+</div>
+
+<div class="wide">
+  <div class="fig-wide">
+    <img src="images/fig-model-comparison.png" alt="Three bar charts comparing five models on COCO recall at 1, Pets precision at 1, and Pets mAP; SigLIP models in orange score highest">
+  </div>
+  <div class="table-wrap">
+    {{TABLE_MAIN}}
+  </div>
+  <p class="note">R@k = recall@k, P@k = precision@k, MRR cut off at 10. COCO: {{n_queries}} caption queries over 5,000 images. Pets: 7,389 leave-one-out queries, relevant = same breed.</p>
+</div>
+
+<div class="wrap">
+  <section>
+    <div class="callout find">
+      <p><strong>Finding 1 — the model matters more than anything else in the pipeline.</strong> Going from the baseline ViT-B/32 to the best model lifts COCO recall@1 from {{coco_r1_base}} to {{coco_r1_best}}, and Pets mAP from {{pets_map_base}} to {{pets_map_best}}. Same data, same index, same code: only the embedding model changed.</p>
+    </div>
+    <div class="callout find">
+      <p><strong>Finding 2 — SigLIP gives more quality per unit of cost.</strong> On COCO text → image, ViT-B/16 SigLIP ({{b16_params}} parameters) reaches {{b16_r1}} recall@1, ahead of the LAION ViT-L/14 at {{l14_r1}} with {{l14_params}} parameters. Its image queries are also faster ({{b16_lat}} vs {{l14_lat}}). On Pets mAP the larger LAION model is slightly ahead ({{l14_map}} vs {{b16_map}}), so this is a text → image result, not a blanket one.</p>
+    </div>
+    <div class="callout find">
+      <p><strong>Finding 3 — bigger is not automatically better.</strong> The largest model, ViT-SO400M/14 ({{so_params}} parameters, {{so_lat}} per image query), scores {{so_r1}} recall@1, just below ViT-L/16-256 at {{coco_r1_best}} ({{best_params}} parameters, {{best_lat}}). One plausible reason is input resolution (the L/16-256 model reads 256 px images, SO400M reads 224 px), but this was not tested.</p>
+    </div>
+  </section>
+</div>
+
+<div class="wide">
+  <div class="fig-wide">
+    <img src="images/fig-cost-quality.png" alt="Scatter plot of image query latency against COCO recall at 1 for the five models; ViT-L/16-256 SigLIP is top, ViT-B/16 SigLIP is a cheap high point">
+  </div>
+  <div class="table-wrap">
+    {{TABLE_LATENCY}}
+  </div>
+  <p class="note">Median of 30 single-query runs after warm-up, including the FAISS search, measured on a laptop GTX 1060 (6 GB). Text queries are short; image queries pay for decoding and a larger input.</p>
+</div>
+
+<div class="wrap">
+  <section id="examples">
+    <h2>What the search actually returns</h2>
+    <p>Numbers hide the texture of the results, so these are randomly sampled examples (fixed seed, captions limited to a readable length) from the best model. First, text queries where the expected image came back first:</p>
+  </section>
+</div>
+
+<div class="wide">
+  <div class="fig-wide">
+    <img src="images/fig-coco-hits.jpg" alt="Three COCO captions, each with the expected image and the top four retrieved images; the expected image is ranked first every time">
+  </div>
+</div>
+
+<div class="wrap">
+  <section>
+    <h2>Many misses are reasonable answers</h2>
+    <p>Here are queries where the expected image was <em>not</em> in the top results, ranked as low as #408 in these examples. Look at what came back instead:</p>
+  </section>
+</div>
+
+<div class="wide">
+  <div class="fig-wide">
+    <img src="images/fig-coco-misses.jpg" alt="Four COCO captions where the expected image ranked 18th to 408th; the retrieved top results are other images that plausibly match the caption">
+  </div>
+</div>
+
+<div class="wrap">
+  <section>
+    <div class="callout find">
+      <p><strong>Finding 4 — the strict metric understates real quality.</strong> "A big bowl with some food inside of it" is matched by many bowls, and the benchmark only accepts one. Across all queries, the correct image is first {{top1_hit}} of the time, but of the {{n_miss}} cases where it isn't, the image returned instead shares at least one COCO object category with the expected one {{miss_cat}} of the time. Two <em>random</em> COCO images do so only {{rand_cat}} of the time, and the average category overlap (Jaccard) is {{miss_jac}} versus {{rand_jac}} for random pairs.</p>
+    </div>
+    <div class="callout warn">
+      <p><strong>Read this carefully.</strong> Sharing a category is a coarse check ("person" appears in many images), so this does not prove that every miss is acceptable. It shows that the misses are overwhelmingly <em>near</em>-misses, not random failures. Human relevance judgements would be needed for a precise estimate.</p>
+    </div>
+    <h2 style="margin-top:2rem">Where image → image goes wrong</h2>
+    <p>On Pets the best model finds the right breed first {{pets_p1_best}} of the time. When it fails, it fails between breeds that people also confuse. The chart ranks the most common confusions, and the grid shows one example query for each of four of them (✓ same breed, ✗ wrong breed):</p>
+  </section>
+</div>
+
+<div class="wide">
+  <div class="chart-grid" style="grid-template-columns: minmax(300px, 1fr)">
+    <img src="images/fig-pets-confusions.png" alt="Bar chart of the ten most common breed confusions; Ragdoll to Birman leads with 40 queries">
+  </div>
+  <div class="fig-wide">
+    <img src="images/fig-pets-misses.jpg" alt="Four Pets queries where the top result is the wrong breed: Ragdoll returns Birman, Beagle returns Basset Hound, American Pit Bull Terrier returns Staffordshire Bull Terrier, British Shorthair returns Russian Blue">
+  </div>
+</div>
+
+<div class="wrap">
+  <section>
+    <div class="callout find">
+      <p><strong>Finding 5 — the errors are fine-grained, not coarse.</strong> None of the ten most common confusions crosses species: it confuses ragdoll with birman, American pit bull terrier with Staffordshire bull terrier, and Egyptian mau with bengal. These are pairs that even people find hard to tell apart.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Engineering notes</h2>
+    <div class="principle-grid">
+      <div class="card"><h3>Leave-one-out for image queries</h3><p>An indexed image always finds itself at rank 1 with similarity 1.0 (visible in the screenshot above). The evaluation removes the query from its own results; otherwise every image-to-image score would be inflated.</p></div>
+      <div class="card"><h3>One command per model</h3><p>Building an index and running the whole evaluation is two commands, and each run writes a JSON file under <code>results/</code>. The tables and charts in this report are generated from those files by script, with no hand-copied numbers.</p></div>
+      <div class="card"><h3>Small hardware, deliberate choices</h3><p>Everything ran on a laptop GTX 1060 (6 GB). That pinned PyTorch to CUDA 12.6 builds (newer ones drop this GPU generation) and Python to 3.12. Building an index took about 2–3 minutes for the smallest model and over ten minutes per dataset for the largest.</p></div>
+      <div class="card"><h3>Safe image serving</h3><p>The API only serves filenames that exist in the index, which blocks path-traversal requests, and validates <code>k</code>, the dataset name and uploaded files before doing any work.</p></div>
+    </div>
+  </section>
+
+  <section id="cv">
+    <h2>CV-ready bullets</h2>
+    <p>Each bullet is backed by a number in this report; pick what fits the role.</p>
+    <ul class="cv-list" id="cvList">
+      <li>Built a text-to-image and image-to-image retrieval system on CLIP/SigLIP embeddings with an exact FAISS index, served through a FastAPI service and a Streamlit UI</li>
+      <li>Designed a retrieval evaluation harness (recall@k, MRR, precision@k, mAP) on COCO ({{n_queries}} caption queries over 5,000 images) and Oxford Pets (7,389 leave-one-out queries), and benchmarked five embedding models on it</li>
+      <li>Raised COCO text-to-image recall@1 from {{coco_r1_base}} to {{coco_r1_best}} and Pets mAP from {{pets_map_base}} to {{pets_map_best}} by selecting and comparing models, with all numbers generated by script from saved result files</li>
+      <li>Found that ViT-B/16 SigLIP ({{b16_params}} parameters) outperforms a LAION ViT-L/14 ({{l14_params}}) on COCO text-to-image ({{b16_r1}} vs {{l14_r1}} recall@1) at roughly a third of the image-query latency, and that the largest model tested was not the best</li>
+      <li>Ran an error analysis showing that {{miss_cat}} of COCO top-1 misses still share an object category with the expected image (vs {{rand_cat}} for random pairs), i.e. the strict one-correct-answer metric understates real search quality</li>
+      <li>Characterised failure modes on Pets as fine-grained breed confusions (e.g. ragdoll vs birman) rather than coarse errors</li>
+    </ul>
+    <button class="copy-btn" id="copyBtn" type="button">Copy all as plain text</button>
+  </section>
+
+  <section id="limitations">
+    <h2>Limitations &amp; what's next</h2>
+    <ul class="limits">
+      <li><strong>Possible training-data overlap.</strong> The models are pretrained on web-scale data (LAION-2B, WebLI) that may contain COCO or Pets images. These numbers show how well this pipeline retrieves with these models, not performance on guaranteed-unseen data.</li>
+      <li><strong>One correct image per caption.</strong> COCO often has several images that fit a caption equally well. Finding 4 quantifies the effect only coarsely; proper human relevance judgements were not collected.</li>
+      <li><strong>Pets relevance is breed-only.</strong> Two different breeds that look alike count as a miss.</li>
+      <li><strong>Small, curated datasets.</strong> 5,000 and 7,389 images. Latency and index scaling at millions of images were not tested; exact search would give way to an approximate index there.</li>
+      <li><strong>Latency is from one laptop GPU</strong> and is meant for comparing models with each other, not as a production figure.</li>
+      <li><strong>Evaluation covers the embedding models, not the API or UI.</strong> There is no load test, and the app is a single-user local demo.</li>
+      <li><strong>Next steps:</strong> a personal-photo collection as a demo set; image-only baselines (DINOv2) for Pets; a caption-then-embed baseline using a vision-language model; query rewriting or re-ranking on top of the top-k; an error analysis with human judgements.</li>
+    </ul>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">
+    Built solo, end to end. Source, evaluation scripts and the raw result files are in the project repository (<code>README.md</code>, <code>results/</code>, <code>scripts/</code>).
+  </div>
+</footer>
+
+<script>
+(function () {
+  var btn = document.getElementById('copyBtn');
+  var list = document.getElementById('cvList');
+  if (!btn || !list) return;
+  btn.addEventListener('click', function () {
+    var text = Array.prototype.map.call(list.querySelectorAll('li'), function (li) {
+      return '- ' + li.textContent.trim();
+    }).join('\n');
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+    var done = function () {
+      var original = btn.textContent;
+      btn.textContent = 'Copied';
+      setTimeout(function () { btn.textContent = original; }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallback(); done(); });
+    } else { fallback(); done(); }
+  });
+})();
+</script>
+</body>
+</html>
