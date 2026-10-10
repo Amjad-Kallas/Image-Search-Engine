@@ -1,0 +1,40 @@
+{
+  "model": "ViT-L-16-SigLIP-256__webli",
+  "text2img_coco": {
+    "recall@1": 0.5146318061885344,
+    "recall@5": 0.7526185336211721,
+    "recall@10": 0.8286559526665067,
+    "precision@10": 0.08286559526665067,
+    "mrr@10": 0.6159830494922843,
+    "n_queries": 25014
+  },
+  "img2img_pets": {
+    "precision@1": 0.9530383001759372,
+    "recall@1": 0.004796022356858999,
+    "precision@5": 0.9318446339152794,
+    "recall@5": 0.02344562795735255,
+    "precision@10": 0.9210583299499255,
+    "recall@10": 0.04634824141583959,
+    "n_queries": 7389,
+    "mAP": 0.6692306474901095,
+    "worst_breeds_top1": {
+      "ragdoll": 0.79,
+      "egyptian_mau": 0.86,
+      "bengal": 0.865,
+      "american_pit_bull_terrier": 0.875,
+      "birman": 0.875
+    },
+    "most_confused": [
+      "ragdoll -> birman: 40",
+      "birman -> ragdoll: 22",
+      "egyptian_mau -> bengal: 19",
+      "american_pit_bull_terrier -> staffordshire_bull_terrier: 17",
+      "bengal -> egyptian_mau: 15",
+      "chihuahua -> miniature_pinscher: 12",
+      "boxer -> american_bulldog: 10",
+      "staffordshire_bull_terrier -> american_bulldog: 9",
+      "beagle -> basset_hound: 8",
+      "british_shorthair -> russian_blue: 8"
+    ]
+  }
+}

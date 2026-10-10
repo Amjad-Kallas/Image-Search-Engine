@@ -1,0 +1,40 @@
+{
+  "model": "ViT-B-32__laion2b_s34b_b79k",
+  "text2img_coco": {
+    "recall@1": 0.38778284160869914,
+    "recall@5": 0.6480370992244343,
+    "recall@10": 0.7467418245782362,
+    "precision@10": 0.07467418245782362,
+    "mrr@10": 0.4987193679476001,
+    "n_queries": 25014
+  },
+  "img2img_pets": {
+    "precision@1": 0.8715658411151712,
+    "recall@1": 0.004385899199948505,
+    "precision@5": 0.8277980782243877,
+    "recall@5": 0.02082649543187698,
+    "precision@10": 0.7997157937474625,
+    "recall@10": 0.04023756693289583,
+    "n_queries": 7389,
+    "mAP": 0.47598175380709146,
+    "worst_breeds_top1": {
+      "ragdoll": 0.69,
+      "american_pit_bull_terrier": 0.74,
+      "british_shorthair": 0.745,
+      "beagle": 0.755,
+      "birman": 0.755
+    },
+    "most_confused": [
+      "beagle -> basset_hound: 40",
+      "british_shorthair -> russian_blue: 40",
+      "ragdoll -> birman: 40",
+      "birman -> ragdoll: 36",
+      "american_pit_bull_terrier -> staffordshire_bull_terrier: 29",
+      "basset_hound -> beagle: 27",
+      "russian_blue -> british_shorthair: 24",
+      "egyptian_mau -> bengal: 23",
+      "siamese -> birman: 22",
+      "english_cocker_spaniel -> english_setter: 20"
+    ]
+  }
+}
